@@ -176,17 +176,19 @@ const _normalizeMatrixArray = float32Array => {
   }
 };
 
-const xrState = (() => {
-  const result = {};
-  
-  const sab = new SharedArrayBuffer(1024);
+const _makeSab = size => {
+  const sab = new SharedArrayBuffer(size);
   let index = 0;
-  const _makeTypedArray = (c, n) => {
+  return (c, n) => {
     const result = new c(sab, index, n);
     index += result.byteLength;
     return result;
   };
+};
+const xrState = (() => {
+  const _makeTypedArray = _makeSab(1024);
 
+  const result = {};
   result.windowHandle = _makeTypedArray(Uint32Array, 2);
   result.renderWidth = _makeTypedArray(Float32Array, 1);
   result.renderHeight = _makeTypedArray(Float32Array, 1);
