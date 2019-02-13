@@ -264,46 +264,7 @@ const xrState = (() => {
 })();
 GlobalContext.xrState = xrState;
 
-const vrPresentState = {
-  vrContext: null,
-  system: null,
-  compositor: null,
-  glContextId: 0,
-  msFbo: null,
-  msTex: null,
-  msDepthTex: null,
-  fbo: null,
-  tex: null,
-  depthTex: null,
-  hasPose: false,
-  // lmContext: null,
-  layers: [],
-};
-GlobalContext.vrPresentState = vrPresentState;
-const _getVrGlContext = () => contexts.find(context => context.contextId === vrPresentState.glContextId);
-
-const mlPresentState = {
-  mlContext: null,
-  mlFbo: null,
-  mlTex: null,
-  mlDepthTex: null,
-  mlMsFbo: null,
-  mlMsTex: null,
-  mlMsDepthTex: null,
-  mlGlContextId: 0,
-  mlCleanups: null,
-  mlHasPose: false,
-  layers: [],
-};
-GlobalContext.mlPresentState = mlPresentState;
-const _getMlGlContext = () => contexts.find(context => context.contextId === mlPresentState.mlGlContextId);
-
-const fakePresentState = {
-  fakeVrDisplay: null,
-  layers: [],
-};
-GlobalContext.fakePresentState = fakePresentState;
-GlobalContext.fakeVrDisplayEnabled = false;
+GlobalContext.fakeVrDisplayEnabled = false; // XXX globalize thisd
 
 let innerWidth = 1280; // XXX do not track this globally
 let innerHeight = 1024;
@@ -364,7 +325,6 @@ const _startTopRenderLoop = () => {
     last: Date.now(),
     idle: 0,
     wait: 0,
-    prepare: 0,
     events: 0,
     media: 0,
     user: 0,
@@ -376,12 +336,11 @@ const _startTopRenderLoop = () => {
   const _topRenderLoop = async () => {
     if (args.performance) {
       if (timestamps.frames >= TIMESTAMP_FRAMES) {
-        console.log(`${(TIMESTAMP_FRAMES/(timestamps.total/1000)).toFixed(0)} FPS | ${timestamps.idle}ms idle | ${timestamps.wait}ms wait | ${timestamps.prepare}ms prepare | ${timestamps.events}ms events | ${timestamps.media}ms media | ${timestamps.user}ms user | ${timestamps.submit}ms submit`);
+        console.log(`${(TIMESTAMP_FRAMES/(timestamps.total/1000)).toFixed(0)} FPS | ${timestamps.idle}ms idle | ${timestamps.wait}ms wait | ${timestamps.events}ms events | ${timestamps.media}ms media | ${timestamps.user}ms user | ${timestamps.submit}ms submit`);
 
         timestamps.frames = 0;
         timestamps.idle = 0;
         timestamps.wait = 0;
-        timestamps.prepare = 0;
         timestamps.events = 0;
         timestamps.media = 0;
         timestamps.user = 0;
@@ -397,326 +356,14 @@ const _startTopRenderLoop = () => {
       timestamps.last = now;
     }
 
-    if (fakePresentState.fakeVrDisplay) {
-      fakePresentState.fakeVrDisplay.waitGetPoses();
-    }
-    let vrGlContext, mlGlContext;
-    if (vrGlContext = _getVrGlContext()) {
-      // wait for frame
-      await new Promise((accept, reject) => {
-        vrPresentState.compositor.RequestGetPoses(
-          vrPresentState.system,
-          localFloat32Array, // hmd
-          localFloat32Array2, // left controller
-          localFloat32Array3, // right controller
-          accept
-        );
-      });
-      if (!immediate) {
-        return;
-      }
+    await Promise.all(windows.map(window => window.tickAnimationFrame('wait')));
 
-      vrPresentState.hasPose = true;
-      if (args.performance) {
-        const now = Date.now();
-        const diff = now - timestamps.last;
-        timestamps.wait += diff;
-        timestamps.total += diff;
-        timestamps.last = now;
-      }
-      _normalizeMatrixArray(localFloat32Array);
-      _normalizeMatrixArray(localFloat32Array2);
-      _normalizeMatrixArray(localFloat32Array3);
-
-      // build xr state
-      const hmdMatrix = localMatrix.fromArray(localFloat32Array);
-
-      hmdMatrix.decompose(localVector, localQuaternion, localVector2);
-      localVector.toArray(xrState.position);
-      localQuaternion.toArray(xrState.orientation);
-
-      hmdMatrix.getInverse(hmdMatrix);
-
-      vrPresentState.system.GetEyeToHeadTransform(0, localFloat32Array4);
-      localMatrix2.fromArray(localFloat32Array4);
-      localMatrix2.decompose(localVector, localQuaternion, localVector2);
-      localVector.toArray(xrState.leftOffset);
-      localMatrix2
-        .getInverse(localMatrix2)
-        .multiply(hmdMatrix);
-      localMatrix2.toArray(xrState.leftViewMatrix);
-
-      vrPresentState.system.GetProjectionMatrix(0, xrState.depthNear[0], xrState.depthFar[0], localFloat32Array4);
-      _normalizeMatrixArray(localFloat32Array4);
-      xrState.leftProjectionMatrix.set(localFloat32Array4);
-
-      vrPresentState.system.GetProjectionRaw(0, localFovArray);
-      for (let i = 0; i < localFovArray.length; i++) {
-        xrState.leftFov[i] = Math.atan(localFovArray[i]) / Math.PI * 180;
-      }
-
-      vrPresentState.system.GetEyeToHeadTransform(1, localFloat32Array4);
-      _normalizeMatrixArray(localFloat32Array4);
-      localMatrix2.fromArray(localFloat32Array4);
-      localMatrix2.decompose(localVector, localQuaternion, localVector2);
-      localVector.toArray(xrState.rightOffset);
-      localMatrix2
-        .getInverse(localMatrix2)
-        .multiply(hmdMatrix);
-      localMatrix2.toArray(xrState.rightViewMatrix);
-
-      vrPresentState.system.GetProjectionMatrix(1, xrState.depthNear[0], xrState.depthFar[0], localFloat32Array4);
-      _normalizeMatrixArray(localFloat32Array4);
-      xrState.rightProjectionMatrix.set(localFloat32Array4);
-
-      vrPresentState.system.GetProjectionRaw(1, localFovArray);
-      for (let i = 0; i < localFovArray.length; i++) {
-        xrState.rightFov[i] = Math.atan(localFovArray[i]) / Math.PI * 180;
-      }
-
-      // build stage parameters
-      // vrPresentState.system.GetSeatedZeroPoseToStandingAbsoluteTrackingPose(localFloat32Array4);
-      // _normalizeMatrixArray(localFloat32Array4);
-      // stageParameters.sittingToStandingTransform.set(localFloat32Array4);
-
-      // build gamepads data
-      {
-        const leftGamepad = xrState.gamepads[0];
-        vrPresentState.system.GetControllerState(0, localGamepadArray);
-        if (!isNaN(localGamepadArray[0])) {
-          leftGamepad.connected[0] = true;
-
-          localMatrix.fromArray(localFloat32Array2);
-          localMatrix.decompose(localVector, localQuaternion, localVector2);
-          localVector.toArray(leftGamepad.position);
-          localQuaternion.toArray(leftGamepad.orientation);
-
-          leftGamepad.buttons[0].pressed[0] = localGamepadArray[4]; // pad
-          leftGamepad.buttons[1].pressed[0] = localGamepadArray[5]; // trigger
-          leftGamepad.buttons[2].pressed[0] = localGamepadArray[3]; // grip
-          leftGamepad.buttons[3].pressed[0] = localGamepadArray[2]; // menu
-          leftGamepad.buttons[4].pressed[0] = localGamepadArray[1]; // system
-
-          leftGamepad.buttons[0].touched[0] = localGamepadArray[9]; // pad
-          leftGamepad.buttons[1].touched[0] = localGamepadArray[10]; // trigger
-          leftGamepad.buttons[2].touched[0] = localGamepadArray[8]; // grip
-          leftGamepad.buttons[3].touched[0] = localGamepadArray[7]; // menu
-          leftGamepad.buttons[4].touched[0] = localGamepadArray[6]; // system
-
-          for (let i = 0; i < 10; i++) {
-            leftGamepad.axes[i] = localGamepadArray[11+i];
-          }
-          leftGamepad.buttons[1].value[0] = leftGamepad.axes[2]; // trigger
-        } else {
-          leftGamepad.connected[0] = 0;
-        }
-      }
-
-      {
-        const rightGamepad = xrState.gamepads[1];
-        vrPresentState.system.GetControllerState(1, localGamepadArray);
-        if (!isNaN(localGamepadArray[0])) {
-          rightGamepad.connected[0] = 1;
-          
-          localMatrix.fromArray(localFloat32Array3);
-          localMatrix.decompose(localVector, localQuaternion, localVector2);
-          localVector.toArray(rightGamepad.position);
-          localQuaternion.toArray(rightGamepad.orientation);
-
-          rightGamepad.buttons[0].pressed[0] = localGamepadArray[4]; // pad
-          rightGamepad.buttons[1].pressed[0] = localGamepadArray[5]; // trigger
-          rightGamepad.buttons[2].pressed[0] = localGamepadArray[3]; // grip
-          rightGamepad.buttons[3].pressed[0] = localGamepadArray[2]; // menu
-          rightGamepad.buttons[4].pressed[0] = localGamepadArray[1]; // system
-
-          rightGamepad.buttons[0].touched[0] = localGamepadArray[9]; // pad
-          rightGamepad.buttons[1].touched[0] = localGamepadArray[10]; // trigger
-          rightGamepad.buttons[2].touched[0] = localGamepadArray[8]; // grip
-          rightGamepad.buttons[3].touched[0] = localGamepadArray[7]; // menu
-          rightGamepad.buttons[4].touched[0] = localGamepadArray[6]; // system
-
-          for (let i = 0; i < 10; i++) {
-            rightGamepad.axes[i] = localGamepadArray[11+i];
-          }
-          rightGamepad.buttons[1].value[0] = rightGamepad.axes[2]; // trigger
-        } else {
-          rightGamepad.connected[0] = 0;
-        }
-      }
-
-      /* if (vrPresentState.lmContext) { // XXX remove this binding
-        vrPresentState.lmContext.WaitGetPoses(handsArray);
-      } */
-
-      if (args.performance) {
-        const now = Date.now();
-        const diff = now - timestamps.last;
-        timestamps.prepare += diff;
-        timestamps.total += diff;
-        timestamps.last = now;
-      }
-    } else if (mlGlContext = _getMlGlContext()) {
-      mlPresentState.mlHasPose = await new Promise((accept, reject) => {
-        mlPresentState.mlContext.RequestGetPoses(
-          transformArray,
-          projectionArray,
-          controllersArray,
-          accept
-        );
-      });
-      if (!immediate) {
-        return;
-      }
-
-      mlPresentState.mlContext.PrepareFrame(
-        mlGlContext, // gl context for depth population
-        mlPresentState.mlMsFbo,
-        xrState.renderWidth[0]*2,
-        xrState.renderHeight[0],
-      );
-
-      if (args.performance) {
-        const now = Date.now();
-        const diff = now - timestamps.last;
-        timestamps.wait += diff;
-        timestamps.total += diff;
-        timestamps.last = now;
-      }
-
-      if (mlPresentState.mlHasPose) {
-        localVector.fromArray(transformArray, 0);
-        localQuaternion.fromArray(transformArray, 3);
-        localVector2.set(1, 1, 1);
-        localMatrix.compose(localVector, localQuaternion, localVector2).getInverse(localMatrix);
-        localVector.toArray(xrState.position);
-        localQuaternion.toArray(xrState.orientation);
-        localMatrix.toArray(xrState.leftViewMatrix);
-        xrState.leftProjectionMatrix.set(projectionArray.slice(0, 16));
-
-        localVector.fromArray(transformArray, 3 + 4);
-        localQuaternion.fromArray(transformArray, 3 + 4 + 3);
-        // localVector2.set(1, 1, 1);
-        localMatrix.compose(localVector, localQuaternion, localVector2).getInverse(localMatrix);
-        localMatrix.toArray(xrState.rightViewMatrix);
-        xrState.rightProjectionMatrix.set(projectionArray.slice(16, 32));
-
-        let controllersArrayIndex = 0;
-        {
-          const leftGamepad = xrState.gamepads[0];
-          leftGamepad.connected[0] = controllersArray[controllersArrayIndex];
-          controllersArrayIndex++;
-          leftGamepad.position.set(controllersArray.slice(controllersArrayIndex, controllersArrayIndex + 3));
-          controllersArrayIndex += 3;
-          leftGamepad.orientation.set(controllersArray.slice(controllersArrayIndex, controllersArrayIndex + 4));
-          controllersArrayIndex += 4;
-          const leftTriggerValue = controllersArray[controllersArrayIndex];
-          leftGamepad.buttons[1].value[0] = leftTriggerValue;
-          const leftTriggerPushed = leftTriggerValue > 0.5 ? 1 : 0;
-          leftGamepad.buttons[1].touched[0] = leftTriggerPushed;
-          leftGamepad.buttons[1].pressed[0] = leftTriggerPushed;
-          leftGamepad.axes[2] = leftTriggerValue;
-          controllersArrayIndex++;
-          const leftBumperValue = controllersArray[controllersArrayIndex];
-          leftGamepad.buttons[2].value[0] = leftBumperValue;
-          const leftBumperPushed = leftBumperValue > 0.5 ? 1 : 0;
-          leftGamepad.buttons[2].touched[0] = leftBumperPushed;
-          leftGamepad.buttons[2].pressed[0] = leftBumperPushed;
-          controllersArrayIndex++;
-          const leftHomeValue = controllersArray[controllersArrayIndex];
-          leftGamepad.buttons[3].value[0] = leftHomeValue;
-          const leftHomePushed = leftHomeValue > 0.5 ? 1 : 0;
-          leftGamepad.buttons[3].touched[0] = leftHomePushed;
-          leftGamepad.buttons[3].pressed[0] = leftHomePushed;
-          controllersArrayIndex++;
-          leftGamepad.axes[0] = controllersArray[controllersArrayIndex];
-          leftGamepad.axes[1] = controllersArray[controllersArrayIndex + 1];
-          const leftPadValue = controllersArray[controllersArrayIndex + 2];
-          leftGamepad.buttons[0].value[0] = leftPadValue;
-          const leftPadTouched = leftPadValue > 0 ? 1 : 0;
-          const leftPadPushed = leftPadValue > 0.5 ? 1: 0;
-          leftGamepad.buttons[0].touched[0] = leftPadTouched;
-          leftGamepad.buttons[0].pressed[0] = leftPadPushed;
-          controllersArrayIndex += 3;
-        }
-        {
-          const rightGamepad = xrState.gamepads[1];
-          rightGamepad.connected[0] = controllersArray[controllersArrayIndex];
-          controllersArrayIndex++;
-          rightGamepad.position.set(controllersArray.slice(controllersArrayIndex, controllersArrayIndex + 3));
-          controllersArrayIndex += 3;
-          rightGamepad.orientation.set(controllersArray.slice(controllersArrayIndex, controllersArrayIndex + 4));
-          controllersArrayIndex += 4;
-          const rightTriggerValue = controllersArray[controllersArrayIndex];
-          rightGamepad.buttons[1].value[0] = rightTriggerValue;
-          const rightTriggerPushed = rightTriggerValue > 0.5 ? 1 : 0;
-          rightGamepad.buttons[1].touched[0] = rightTriggerPushed;
-          rightGamepad.buttons[1].pressed[0] = rightTriggerPushed;
-          rightGamepad.axes[2] = rightTriggerValue;
-          controllersArrayIndex++;
-          const rightBumperValue = controllersArray[controllersArrayIndex];
-          rightGamepad.buttons[2].value[0] = rightBumperValue;
-          const rightBumperPushed = rightBumperValue > 0.5 ? 1 : 0;
-          rightGamepad.buttons[2].touched[0] = rightBumperPushed;
-          rightGamepad.buttons[2].pressed[0] = rightBumperPushed;
-          controllersArrayIndex++;
-          const rightHomeValue = controllersArray[controllersArrayIndex];
-          rightGamepad.buttons[3].value[0] = rightHomeValue;
-          const rightHomePushed = rightHomeValue > 0.5 ? 1 : 0;
-          rightGamepad.buttons[3].touched[0] = rightHomePushed;
-          rightGamepad.buttons[3].pressed[0] = rightHomePushed;
-          controllersArrayIndex++;
-          rightGamepad.axes[0] = controllersArray[controllersArrayIndex];
-          rightGamepad.axes[1] = controllersArray[controllersArrayIndex + 1];
-          const rightPadValue = controllersArray[controllersArrayIndex + 2];
-          rightGamepad.buttons[0].value[0] = rightPadValue;
-          const rightPadTouched = rightPadValue > 0 ? 1 : 0;
-          const rightPadPushed = rightPadValue > 0.5 ? 1 : 0;
-          rightGamepad.buttons[0].touched[0] = rightPadTouched;
-          rightGamepad.buttons[0].pressed[0] = rightPadPushed;
-          controllersArrayIndex += 3;
-        }
-      }
-
-      if (args.performance) {
-        const now = Date.now();
-        const diff = now - timestamps.last;
-        timestamps.prepare += diff;
-        timestamps.total += diff;
-        timestamps.last = now;
-      }
-    } else {
-      /* await new Promise((accept, reject) => {
-        const now = Date.now();
-        const timeDiff = now - lastFrameTime;
-        const waitTime = Math.max(8 - timeDiff, 0);
-        setTimeout(accept, waitTime);
-      });
-      if (!immediate) {
-        return;
-      } */
-
-      if (args.performance) {
-        const now = Date.now();
-        const diff = now - timestamps.last;
-        timestamps.wait += diff;
-        timestamps.total += diff;
-        timestamps.last = now;
-      }
-    }
-
-    // compute derived gamepads data
-    for (let i = 0; i < xrState.gamepads.length; i++) {
-      const gamepad = xrState.gamepads[i];
-      localQuaternion.fromArray(gamepad.orientation);
-      localVector
-        .set(0, 0, -1)
-        .applyQuaternion(localQuaternion)
-        .toArray(gamepad.direction);
-      localVector.fromArray(gamepad.position);
-      localVector2.set(1, 1, 1);
-      localMatrix
-        .compose(localVector, localQuaternion, localVector2)
-        .toArray(gamepad.transformMatrix);
+    if (args.performance) {
+      const now = Date.now();
+      const diff = now - timestamps.last;
+      timestamps.wait += diff;
+      timestamps.total += diff;
+      timestamps.last = now;
     }
 
     // poll operating system events
@@ -732,11 +379,7 @@ const _startTopRenderLoop = () => {
     // update media frames
     nativeBindings.nativeVideo.Video.updateAll();
     nativeBindings.nativeBrowser.Browser.updateAll();
-    // update magic leap state
-    if (mlGlContext) {
-      nativeBindings.nativeMl.Update(mlPresentState.mlContext, mlGlContext); // gl context for mesh buffer population
-      nativeBindings.nativeMl.Poll();
-    }
+
     if (args.performance) {
       const now = Date.now();
       const diff = now - timestamps.last;
@@ -750,14 +393,7 @@ const _startTopRenderLoop = () => {
     }
 
     // tick animation frames
-    const syncs = (await Promise.all(windows.map(async window => { // XXX tick hidden windows first
-      const syncs = await window.tickAnimationFrame();
-      return syncs.map(({id, sync}) => ({
-        window,
-        id,
-        sync,
-      }));
-    }))).flat();
+    await Promise.all(windows.map(window => window.tickAnimationFrame('top')));
     
     if (args.performance) {
       const now = Date.now();
@@ -767,71 +403,7 @@ const _startTopRenderLoop = () => {
       timestamps.last = now;
     }
 
-    // blit composite framebuffers
-    {
-      for (let i = 0; i < contexts.length; i++) {
-        const context = contexts[i];
-        const sync = syncs.find(sync => sync.window === context.window && sync.id === context.id); // XXX only perform sync in the blitting case; delete sync object otherwise
-        if (sync) {
-          nativeWindow.waitSync(sync.sync);
-        }
-
-        const windowHandle = context.getWindowHandle();
-
-        const {nativeWindow} = nativeBindings;
-        nativeWindow.setCurrentWindowContext(windowHandle);
-        if (isMac) { // XXX move these to window internal
-          context.flush();
-        }
-
-        const isVisible = nativeWindow.isVisible(windowHandle) || vrGlContext === context || mlGlContext === context;
-        if (isVisible) {
-          // console.log('blit layers', fakePresentState.layers.length);
-
-          if (vrGlContext === context && vrPresentState.hasPose) {
-            if (vrPresentState.layers.length > 0) {
-              nativeWindow.composeLayers(context, vrPresentState.fbo, vrPresentState.layers, xrState);
-            } else {
-              nativeWindow.blitFrameBuffer(context, vrPresentState.msFbo, vrPresentState.fbo, vrGlContext.canvas.width, vrGlContext.canvas.height, vrGlContext.canvas.width, vrGlContext.canvas.height, true, false, false);
-            }
-
-            vrPresentState.compositor.Submit(context, vrPresentState.tex);
-            vrPresentState.hasPose = false;
-
-            nativeWindow.blitFrameBuffer(context, vrPresentState.fbo, 0, vrGlContext.canvas.width * (args.blit ? 0.5 : 1), vrGlContext.canvas.height, xrState.renderWidth[0], xrState.renderHeight[0], true, false, false);
-          } else if (mlGlContext === context && mlPresentState.mlHasPose) {
-            if (mlPresentState.layers.length > 0) { // TODO: composition can be directly to the output texture array
-              nativeWindow.composeLayers(context, mlPresentState.mlFbo, mlPresentState.layers, xrState);
-            } else {
-              nativeWindow.blitFrameBuffer(context, mlPresentState.mlMsFbo, mlPresentState.mlFbo, mlGlContext.canvas.width, mlGlContext.canvas.height, mlGlContext.canvas.width, mlGlContext.canvas.height, true, false, false);
-            }
-
-            mlPresentState.mlContext.SubmitFrame(mlPresentState.mlTex, mlGlContext.canvas.width, mlGlContext.canvas.height);
-            mlPresentState.mlHasPose = false;
-
-            // nativeWindow.blitFrameBuffer(context, mlPresentState.mlFbo, 0, mlGlContext.canvas.width, mlGlContext.canvas.height, xrState.renderWidth[0], xrState.renderHeight[0], true, false, false);
-          } else if (fakePresentState.layers.length > 0) { // XXX blit only to the intended context
-            nativeWindow.composeLayers(context, 0, fakePresentState.layers, xrState);
-          }
-        }
-
-        if (isMac) {
-          context.bindFramebufferRaw(context.FRAMEBUFFER, null);
-        }
-        nativeWindow.swapBuffers(windowHandle); // XXX swap buffers on the child side
-        if (isMac) {
-          const drawFramebuffer = context.getFramebuffer(context.DRAW_FRAMEBUFFER);
-          if (drawFramebuffer) {
-            context.bindFramebuffer(context.DRAW_FRAMEBUFFER, drawFramebuffer);
-          }
-
-          const readFramebuffer = context.getFramebuffer(context.READ_FRAMEBUFFER);
-          if (readFramebuffer) {
-            context.bindFramebuffer(context.READ_FRAMEBUFFER, readFramebuffer);
-          }
-        }
-      }
-    }
+    await Promise.all(windows.map(window => window.tickAnimationFrame('submit')));
 
     // lastFrameTime = Date.now()
 
