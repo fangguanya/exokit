@@ -107,7 +107,6 @@ const {
 // GlobalContext.version = '';
 GlobalContext.xrState = xrState;
 
-// Class imports.
 const {_parseDocument, _parseDocumentAst, Document, DocumentFragment, DocumentType, DOMImplementation, initDocument} = require('./Document');
 const {
   Element,
@@ -145,6 +144,34 @@ const {_elementGetter, _elementSetter, _download} = utils;
 
 const btoa = s => Buffer.from(s, 'binary').toString('base64');
 const atob = s => Buffer.from(s, 'base64').toString('binary');
+
+const zeroMatrix = new THREE.Matrix4();
+const localFloat32Array = zeroMatrix.toArray(new Float32Array(16));
+const localFloat32Array2 = zeroMatrix.toArray(new Float32Array(16));
+const localFloat32Array3 = zeroMatrix.toArray(new Float32Array(16));
+const localFloat32Array4 = new Float32Array(16);
+const localFovArray = new Float32Array(4);
+const localGamepadArray = new Float32Array(24);
+
+// const handEntrySize = (1 + (5 * 5)) * (3 + 3);
+const transformArray = new Float32Array(7 * 2);
+const projectionArray = new Float32Array(16 * 2);
+/* const handsArray = [
+  new Float32Array(handEntrySize),
+  new Float32Array(handEntrySize),
+]; */
+const controllersArray = new Float32Array((1 + 3 + 4 + 6) * 2);
+
+const localVector = new THREE.Vector3();
+const localVector2 = new THREE.Vector3();
+const localQuaternion = new THREE.Quaternion();
+const localMatrix = new THREE.Matrix4();
+const localMatrix2 = new THREE.Matrix4();
+const _normalizeMatrixArray = float32Array => {
+  if (isNaN(float32Array[0])) {
+    zeroMatrix.toArray(float32Array);
+  }
+};
 
 const contexts = [];
 GlobalContext.contexts = contexts;
