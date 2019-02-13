@@ -531,7 +531,7 @@ NAN_METHOD(GetSync) {
 NAN_METHOD(WaitSync) {
   if (info[0]->IsArray()) {
     Local<Array> syncArray = Local<Array>::Cast(info[0]);
-    GLsync sync = (GLSync)arrayToPointer(syncArray);
+    GLsync sync = (GLsync)arrayToPointer(syncArray);
     glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
     // glDeleteSync(sync);
   } else {
@@ -542,7 +542,7 @@ NAN_METHOD(WaitSync) {
 NAN_METHOD(DeleteSync) {
   if (info[0]->IsArray()) {
     Local<Array> syncArray = Local<Array>::Cast(info[0]);
-    GLsync sync = (GLSync)arrayToPointer(syncArray);
+    GLsync sync = (GLsync)arrayToPointer(syncArray);
     glDeleteSync(sync);
   } else {
     Nan::ThrowError("DeleteSync: invalid arguments");
