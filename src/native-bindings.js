@@ -287,7 +287,7 @@ const _onGl3DConstruct = (gl, canvas) => {
 
       if (gl.id === vrPresentState.glContextId) {
         throw new Error('destroyed vr presenting context');
-        /* nativeVr.VR_Shutdown();
+        /* bindings.nativeVr.VR_Shutdown();
 
         vrPresentState.glContextId = 0;
         vrPresentState.system = null;
@@ -575,9 +575,9 @@ GlobalContext.nativeVr = bindings.nativeVr;
 GlobalContext.nativeMl = bindings.nativeMl;
 GlobalContext.nativeBrowser = bindings.nativeBrowser;
 
-if (nativeVr) {
+if (bindings.nativeVr) {
   const cleanups = [];
-  nativeVr.requestPresent = async function(layers) {
+  nbindings.ativeVr.requestPresent = async function(layers) {
     const layer = layers.find(layer => layer && layer.source && layer.source.tagName === 'CANVAS');
     if (layer) {
       const canvas = layer.source;
@@ -586,8 +586,8 @@ if (nativeVr) {
         const {xrState} = GlobalContext;
         
         if (!xrState.isPresenting[0]) {
-          const vrContext = nativeVr.getContext();
-          const system = nativeVr.VR_Init(nativeVr.EVRApplicationType.Scene);
+          const vrContext = bindings.nativeVr.getContext();
+          const system = bindings.nativeVr.VR_Init(bindings.nativeVr.EVRApplicationType.Scene);
           const compositor = vrContext.compositor.NewCompositor();
 
           // const lmContext = vrPresentState.lmContext || (nativeLm && new nativeLm());
@@ -708,9 +708,9 @@ if (nativeVr) {
       throw new Error('no HTMLCanvasElement source provided');
     }
   };
-  nativeVr.exitPresent = async function() {
+  bindings.nativeVr.exitPresent = async function() {
     if (vrPresentState.vrContext) {
-      nativeVr.VR_Shutdown();
+      bindings.nativeVr.VR_Shutdown();
       
       const {msFbo, msTex, msDepthTex, fbo, tex, depthTex} = vrPresentState;
 
