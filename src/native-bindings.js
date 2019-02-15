@@ -577,7 +577,7 @@ GlobalContext.nativeBrowser = bindings.nativeBrowser;
 
 if (bindings.nativeVr) {
   const cleanups = [];
-  nbindings.ativeVr.requestPresent = async function(layers) {
+  bindings.nativeVr.requestPresent = async function(layers) {
     const layer = layers.find(layer => layer && layer.source && layer.source.tagName === 'CANVAS');
     if (layer) {
       const canvas = layer.source;
