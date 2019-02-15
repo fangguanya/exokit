@@ -1,5 +1,6 @@
 const fetch = require('window-fetch');
 // const THREE = require('../lib/three-min.js');
+const {EventTarget} = require('./Event');
 const GlobalContext = require('./GlobalContext');
 const symbols = require('./symbols');
 const {_getBaseUrl, _download} = require('./utils');
