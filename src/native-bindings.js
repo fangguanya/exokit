@@ -710,7 +710,7 @@ if (nativeVr) {
       throw new Error('no HTMLCanvasElement source provided');
     }
   };
-  nativeVr.exitPresent = await function() {
+  nativeVr.exitPresent = async function() {
     if (vrPresentState.vrContext) {
       nativeVr.VR_Shutdown();
       
