@@ -4,7 +4,7 @@ const {EventTarget} = require('./Event');
 const GlobalContext = require('./GlobalContext');
 const symbols = require('./symbols');
 const {_getBaseUrl, _download} = require('./utils');
-const {_makeWindowWithDocument} = require('./WindowVm');
+const {_makeWindow} = require('./WindowVm');
 
 const maxParallelResources = 8;
 class Resource {
@@ -226,12 +226,13 @@ const _runHtml = (element, window) => {
 };
 GlobalContext._runHtml = _runHtml;
 
-const exokit = (s = '', options = {}) => {
+const exokit = (htmlString = '', options = {}) => {
   options.url = options.url || 'http://127.0.0.1/';
   options.baseUrl = options.baseUrl || options.url;
   options.dataPath = options.dataPath || __dirname;
   options.args = options.args || {};
-  return _makeWindowWithDocument(s, options);
+  options.htmlString = htmlString;
+  return _makeWindow(options);
 };
 exokit.load = (src, options = {}) => {
   if (!url.parse(src).protocol) {

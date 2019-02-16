@@ -1984,16 +1984,13 @@ class HTMLIFrameElement extends HTMLSrcableElement {
                     dataPath: options.dataPath,
                     parent,
                     top,
+                    htmlString,
+                    hidden: this.d === 3,
+                    xrOffset: this.xrOffset,
                   });
-                  const contentDocument = GlobalContext._parseDocument(htmlString, contentWindow);
-
-                  contentDocument.hidden = this.d === 3; // XXX pass these to the child
-                  contentDocument.xrOffset = this.xrOffset;
-
-                  contentWindow.document = contentDocument;
 
                   this.contentWindow = contentWindow;
-                  this.contentDocument = contentDocument;
+                  this.contentDocument = contentWindow.document = {};
 
                   this.readyState = 'complete';
 
