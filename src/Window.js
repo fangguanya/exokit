@@ -69,7 +69,6 @@ const GlobalContext = require('./GlobalContext');
 const symbols = require('./symbols');
 const {urls} = require('./urls');
 
-const bindings = require('./native-bindings');
 const {
   nativeImage: Image,
   nativeImageData: ImageData,
@@ -101,7 +100,7 @@ const {
   nativeMl,
   nativeBrowser,
   nativeWindow,
-} = bindings;
+} = require('./native-bindings');
 
 const nativeWorker = require('worker-native');
 
@@ -1348,8 +1347,8 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
       }
 
       // update magic leap state
-      nativeBindings.nativeMl.Update(mlPresentState.mlContext, mlGlContext); // gl context for mesh buffer population
-      nativeBindings.nativeMl.Poll();
+      nativeMl.Update(mlPresentState.mlContext, mlGlContext); // gl context for mesh buffer population
+      nativeMl.Poll();
 
       // prepare magic leap frame
       mlPresentState.mlContext.PrepareFrame(
