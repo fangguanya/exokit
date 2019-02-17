@@ -1389,7 +1389,9 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
     
     await childWaits;
   };
-  const _tickAnimationFrameSubmit = () => {
+  const _tickAnimationFrameSubmit = async () => {
+    const childSubmits = Promise.all(windows.map(window => window.tickAnimationFrame('submit')));
+
     // composite framebuffers
     for (let i = 0; i < contexts.length; i++) {
       const context = contexts[i];
@@ -1447,6 +1449,8 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
         }
       }
     }
+    
+    await childSubmits;
   };
   window.tickAnimationFrame = type => {
     switch (type) {
