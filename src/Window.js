@@ -1563,4 +1563,4 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
 
 global.require = undefined;
 global.process = undefined;
-global.setImmediate = undefined;
+// global.setImmediate = undefined; // need this for the TLS implementation
