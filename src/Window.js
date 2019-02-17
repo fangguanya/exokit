@@ -1050,7 +1050,8 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
   const _tickAnimationFrameRaf = top => async () => {
     const childSyncs = (await Promise.all(windows.map(window => window.tickAnimationFrame(GlobalContext.contexts.length > 0 ? 'child' : 'top')))).flat();
     for (let i = 0; i < GlobalContext.contexts.length; i++) {
-      GlobalContext.contexts[i].setPrereqSyncs(childSyncs);
+      const context = GlobalContext.contexts[i];
+      context.setPrereqSyncs && context.setPrereqSyncs(childSyncs);
     }
 
     if (rafCbs.length > 0) {
@@ -1090,7 +1091,7 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
         context.clearDirty();
       }
 
-      context.clearPrereqSyncs();
+      context.clearPrereqSyncs && context.clearPrereqSyncs();
     }
     for (let i = 0; i < childSyncs.length; i++) {
       nativeWindow.deleteSync(childSyncs[i]);
