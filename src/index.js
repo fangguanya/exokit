@@ -161,7 +161,12 @@ const xrState = (() => {
   const _makeTypedArray = _makeSab(1024);
 
   const result = {};
+  
   result.windowHandle = _makeTypedArray(Uint32Array, 2);
+  const windowHandle = nativeBindings.nativeWindow.createWindowHandle();
+  result.windowHandle.set(windowHandle);
+  nativeBindings.nativeWindow.setCurrentWindowContext(windowHandle);
+  
   result.isPresenting = _makeTypedArray(Uint32Array, 1);
   result.renderWidth = _makeTypedArray(Float32Array, 1);
   result.renderHeight = _makeTypedArray(Float32Array, 1);
@@ -236,7 +241,34 @@ const xrState = (() => {
 })();
 GlobalContext.xrState = xrState;
 
-GlobalContext.fakeVrDisplayEnabled = false; // XXX globalize thisd
+const topRequestContext = nativeWorker.makeRequestContext();
+topRequestContext.setSyncHandler(m => {
+  switch (m.method) {
+    case 'runSync': {
+      let result, err;
+      try {
+        global._ = m.arg;
+        result = eval(m.jsString);
+      } catch(e) {
+        err = e;
+      } finally {
+        global._ = undefined;
+      }
+      
+      if (!err) {
+        return result;
+      } else {
+        throw err;
+      }
+    }
+    default: {
+      throw new Error(`top request context got unknown message type '${m.method}'`);
+    }
+  }
+});
+nativeWorker.setTopRequestContext(topRequestContext);
+
+GlobalContext.fakeVrDisplayEnabled = false; // XXX globalize this
 
 let innerWidth = 1280; // XXX do not track this globally
 let innerHeight = 1024;
@@ -572,7 +604,7 @@ const _start = () => {
 
     const prompt = '[x] ';
 
-    const replEval = (cmd, context, filename, callback) => {
+    const replEval = async (cmd, context, filename, callback) => {
       cmd = cmd.slice(0, -1); // remove trailing \n
 
       let result, err;
@@ -609,7 +641,7 @@ const _start = () => {
         })();`;
       }
       try {
-        result = window.runRepl(cmd);
+        result = await window.runRepl(cmd);
       } catch(e) {
         err = e;
       }
