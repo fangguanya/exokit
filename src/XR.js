@@ -20,7 +20,7 @@ class XR extends EventEmitter {
     this._window = window;
   }
   requestDevice(name = null) {
-    if (GlobalContext.fakeVrDisplayEnabled) {
+    if (GlobalContext.xrState.fakeVrDisplayEnabled[0]) {
       return Promise.resolve(this._window[symbols.mrDisplaysSymbol].fakeVrDisplay);
     } else if ((name === 'VR' || name === null) && GlobalContext.nativeVr && GlobalContext.nativeVr.VR_IsHmdPresent()) {
       return Promise.resolve(this._window[symbols.mrDisplaysSymbol].xrDisplay);
