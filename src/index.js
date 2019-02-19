@@ -146,6 +146,7 @@ const dataPath = (() => {
 })();
 
 const windows = [];
+GlobalContext.windows = windows;
 // const contexts = [];
 
 const _makeSab = size => {
@@ -469,7 +470,6 @@ const _bindWindow = (window, newWindowCb) => {
     });
   } */
   
-  windows.push(window);
   window.on('destroy', e => {
     const {window} = e;
     for (let i = 0; i < contexts.length; i++) {
@@ -478,8 +478,6 @@ const _bindWindow = (window, newWindowCb) => {
         context.destroy();
       }
     }
-    
-    windows.splice(windows.indexOf(window), 1);
   });
   
   window.on('error', err => {
