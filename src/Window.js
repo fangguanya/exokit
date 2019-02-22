@@ -1025,7 +1025,7 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
       loading = true;
     }
   });
-  
+
   const rafCbs = [];
   window[symbols.rafCbsSymbol] = rafCbs;
   const timeouts = [];
