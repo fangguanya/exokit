@@ -50,9 +50,6 @@ const {THREE} = core;
 
 const nativeBindings = require(path.join(__dirname, 'native-bindings.js'));
 
-const nativeWorker = require('worker-native');
-nativeBindings.nativeWindow.setEventLoop(nativeWorker.getEventLoop());
-
 const GlobalContext = require('./GlobalContext');
 GlobalContext.args = {};
 GlobalContext.version = '';
@@ -243,7 +240,7 @@ const xrState = (() => {
 })();
 GlobalContext.xrState = xrState;
 
-const topRequestContext = nativeWorker.makeRequestContext();
+const topRequestContext = nativeBindings.nativeWorker.makeRequestContext();
 topRequestContext.setSyncHandler(m => {
   switch (m.method) {
     case 'runSync': {
@@ -268,7 +265,7 @@ topRequestContext.setSyncHandler(m => {
     }
   }
 });
-nativeWorker.setTopRequestContext(topRequestContext);
+nativeBindings.nativeWorker.setTopRequestContext(topRequestContext);
 
 GlobalContext.fakeVrDisplayEnabled = false; // XXX globalize this
 

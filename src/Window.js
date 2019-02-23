@@ -100,10 +100,8 @@ const {
   nativeMl,
   nativeBrowser,
   nativeWindow,
+  nativeWorker,
 } = require('./native-bindings');
-
-const nativeWorker = require('worker-native');
-nativeWindow.setEventLoop(nativeWorker.getEventLoop());
 
 GlobalContext.args = args;
 GlobalContext.version = version;
