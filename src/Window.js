@@ -16,6 +16,7 @@ const {
   workerData: {
     args: {
       options,
+      id,
       args,
       version,
       xrState,
@@ -103,6 +104,7 @@ const {
   nativeWorker,
 } = require('./native-bindings');
 
+GlobalContext.id = id;
 GlobalContext.args = args;
 GlobalContext.version = version;
 GlobalContext.xrState = xrState;
