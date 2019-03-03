@@ -321,7 +321,6 @@ NAN_METHOD(CreateWindowHandle) {
 }
 
 void DestroyWindowHandle(NATIVEwindow *window) {
-  NATIVEwindow *window = (NATIVEwindow *)arrayToPointer(Local<Array>::Cast(info[0]));
   eglDestroyContext(window->display, window->context);
   delete window;
 }
