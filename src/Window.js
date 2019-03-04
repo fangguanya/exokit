@@ -509,7 +509,7 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
     },
     getVRDisplaysSync() {
       const result = [];
-      if (GlobalContext.xrState.fakeVrDisplayEnabled[0]) {
+      if (xrState.fakeVrDisplayEnabled[0]) {
         result.push(window[symbols.mrDisplaysSymbol].fakeVrDisplay);
       }
       if (nativeMl && nativeMl.IsPresent()) {
@@ -522,7 +522,7 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
       return result;
     },
     createVRDisplay() {
-      GlobalContext.xrState.fakeVrDisplayEnabled[0] = 1;
+      xrState.fakeVrDisplayEnabled[0] = 1;
       return window[symbols.mrDisplaysSymbol].fakeVrDisplay;
     },
     getGamepads,
