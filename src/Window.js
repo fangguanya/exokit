@@ -1193,7 +1193,7 @@ const _normalizeUrl = utils._makeNormalizeUrl(options.baseUrl);
         const leftGamepad = xrState.gamepads[0];
         vrPresentState.system.GetControllerState(0, localGamepadArray);
         if (!isNaN(localGamepadArray[0])) {
-          leftGamepad.connected[0] = true;
+          leftGamepad.connected[0] = 1;
 
           localMatrix.fromArray(localFloat32Array2);
           localMatrix.decompose(localVector, localQuaternion, localVector2);
